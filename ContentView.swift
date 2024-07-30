@@ -6,20 +6,23 @@ struct ContentView: View {
     @State private var bedTime = Date()
     @State private var tasks: [Task] = []
     @State private var currentTask: String = ""
+    @State private var showingTaskAlert = false
     
     var body: some View {
-        NavigationView {
-            List {
-                Section(header: Text("Settings")) {
-                    DatePicker("Wake Up Time", selection: $wakeUpTime, displayedComponents: .hourAndMinute)
-                    DatePicker("Bed Time", selection: $bedTime, displayedComponents: .hourAndMinute)
-                    Button("Schedule Notifications") {
-                        scheduleNotifications()
+        HStack {
+            NavigationView {
+                List {
+                    Section(header: Text("Settings")) {
+                        DatePicker("Wake Up Time", selection: $wakeUpTime, displayedComponents: .hourAndMinute)
+                        DatePicker("Bed Time", selection: $bedTime, displayedComponents: .hourAndMinute)
+                        Button("Schedule Notifications") {
+                            scheduleNotifications()
+                        }
                     }
                 }
+                .listStyle(SidebarListStyle())
+                .navigationBarTitle("Wake Up Bed Time App")
             }
-            .listStyle(SidebarListStyle())
-            .navigationBarTitle("Wake Up Bed Time App")
             
             VStack {
                 ScrollView {
@@ -34,13 +37,25 @@ struct ContentView: View {
                     }
                 }
                 Spacer()
-                Button(action: startEndTask) {
+                Button(action: {
+                    showingTaskAlert = true
+                }) {
                     Text("Start/End Task")
                         .font(.largeTitle)
                         .padding()
                         .background(Color.blue)
                         .foregroundColor(.white)
                         .cornerRadius(10)
+                }
+                .alert(isPresented: $showingTaskAlert) {
+                    Alert(
+                        title: Text("New Task"),
+                        message: Text("Enter the name of the task"),
+                        primaryButton: .default(Text("Add Task"), action: {
+                            addTask()
+                        }),
+                        secondaryButton: .cancel()
+                    )
                 }
                 Spacer()
             }
@@ -70,9 +85,12 @@ struct ContentView: View {
         }
     }
     
-    func startEndTask() {
-        let newTask = Task(name: "Task at \(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short))", startTime: Date())
-        tasks.append(newTask)
+    func addTask() {
+        if !currentTask.isEmpty {
+            let newTask = Task(name: currentTask, startTime: Date())
+            tasks.append(newTask)
+            currentTask = ""
+        }
     }
 }
 
