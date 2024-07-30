@@ -9,32 +9,42 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                DatePicker("Wake Up Time", selection: $wakeUpTime, displayedComponents: .hourAndMinute)
-                    .padding()
-                DatePicker("Bed Time", selection: $bedTime, displayedComponents: .hourAndMinute)
-                    .padding()
-                
-                Button("Schedule Notifications") {
-                    scheduleNotifications()
+            List {
+                Section(header: Text("Settings")) {
+                    DatePicker("Wake Up Time", selection: $wakeUpTime, displayedComponents: .hourAndMinute)
+                    DatePicker("Bed Time", selection: $bedTime, displayedComponents: .hourAndMinute)
+                    Button("Schedule Notifications") {
+                        scheduleNotifications()
+                    }
                 }
-                .padding()
-                
-                List {
-                    ForEach(tasks) { task in
-                        VStack(alignment: .leading) {
-                            Text(task.name)
-                            Text("Started at: \(task.startTime)")
+            }
+            .listStyle(SidebarListStyle())
+            .navigationBarTitle("Wake Up Bed Time App")
+            
+            VStack {
+                ScrollView {
+                    VStack(alignment: .leading) {
+                        ForEach(tasks) { task in
+                            VStack(alignment: .leading) {
+                                Text(task.name)
+                                Text("Started at: \(task.startTime)")
+                            }
+                            .padding()
                         }
                     }
                 }
-                
-                Button("Start/End Task") {
-                    startEndTask()
+                Spacer()
+                Button(action: startEndTask) {
+                    Text("Start/End Task")
+                        .font(.largeTitle)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                 }
-                .padding()
+                Spacer()
             }
-            .navigationBarTitle("Wake Up Bed Time App")
+            .padding()
         }
     }
     
@@ -61,9 +71,8 @@ struct ContentView: View {
     }
     
     func startEndTask() {
-        let newTask = Task(name: currentTask, startTime: Date())
+        let newTask = Task(name: "Task at \(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short))", startTime: Date())
         tasks.append(newTask)
-        currentTask = ""
     }
 }
 
@@ -71,5 +80,11 @@ struct Task: Identifiable {
     let id = UUID()
     let name: String
     let startTime: Date
+}
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
 }
 
