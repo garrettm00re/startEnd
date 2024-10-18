@@ -174,7 +174,7 @@ export const TimelineApp: React.FC = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 2000); // Update every 2000ms (this is the refresh rate)
+    }, 500); // Update every 2000ms (this is the refresh rate)
   
     return () => clearInterval(timer);
   }, []);
