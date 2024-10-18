@@ -173,12 +173,9 @@ export const TimelineApp: React.FC = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(prev => {
-        const now = new Date();
-        return now.getSeconds() !== prev.getSeconds() ? now : prev;
-      });
-    }, 100);
-
+      setCurrentTime(new Date());
+    }, 2000); // Update every 2000ms (this is the refresh rate)
+  
     return () => clearInterval(timer);
   }, []);
 
@@ -191,18 +188,29 @@ export const TimelineApp: React.FC = () => {
     }
   }, [loadDayData]);
 
-  const calculateTaskHeight = useMemo(() => {
-    return (task: Task, index: number) => {
-      if (!dayData) return '90%';
-      const startTime = new Date(dayData.dayStartTime);
-      const endTime = dayData.dayEndTime ? new Date(dayData.dayEndTime) : currentTime;
-      const totalDuration = endTime.getTime() - startTime.getTime();
-      const taskStartTime = new Date(task.startTime);
-      const taskEndTime = task.endTime ? new Date(task.endTime) : currentTime;
-      const taskDuration = taskEndTime.getTime() - taskStartTime.getTime();
-      return `${(taskDuration / totalDuration) * 100}%`;
-    };
+  const calculateTaskHeight = useCallback((task: Task) => {
+    if (!dayData) return '90%';
+    const startTime = new Date(dayData.dayStartTime).getTime();
+    const endTime = (dayData.dayEndTime ? new Date(dayData.dayEndTime) : currentTime).getTime();
+    const totalDuration = endTime - startTime;
+    const taskStartTime = new Date(task.startTime).getTime();
+    const taskEndTime = (task.endTime ? new Date(task.endTime) : currentTime).getTime();
+    const taskDuration = taskEndTime - taskStartTime;
+    return `${(taskDuration / totalDuration) * 100}%`;
   }, [dayData, currentTime]);
+
+//   const calculateTaskHeight = useMemo(() => {
+//     return (task: Task, index: number) => {
+//       if (!dayData) return '90%';
+//       const startTime = new Date(dayData.dayStartTime);
+//       const endTime = dayData.dayEndTime ? new Date(dayData.dayEndTime) : currentTime;
+//       const totalDuration = endTime.getTime() - startTime.getTime();
+//       const taskStartTime = new Date(task.startTime);
+//       const taskEndTime = task.endTime ? new Date(task.endTime) : currentTime;
+//       const taskDuration = taskEndTime.getTime() - taskStartTime.getTime();
+//       return `${(taskDuration / totalDuration) * 100}%`;
+//     };
+//   }, [dayData, currentTime]);
 
   const formatTime = useCallback((dateString: string) => {
     const date = new Date(dateString);
@@ -217,12 +225,14 @@ export const TimelineApp: React.FC = () => {
 
   const TaskItem = React.memo(({ task, index, showBottomTimestep }: { task: Task; index: number; showBottomTimestep: boolean }) => {
     const tag = tags.find(t => t.id === task.tagId);
+    const height = calculateTaskHeight(task);
+    
     return (
       <>
         {index === 0 && <Timestep time={task.startTime} />}
         <div
           className="text-white flex justify-center items-center w-full cursor-pointer hover:opacity-80"
-          style={{ height: calculateTaskHeight(task, index), backgroundColor: tag?.color || '#000000' }}
+          style={{ height, backgroundColor: tag?.color || '#000000' }}
           onClick={() => handleTaskClick(task)}
         >
           <div className="font-bold z-10">{task.title}</div>
@@ -230,6 +240,10 @@ export const TimelineApp: React.FC = () => {
         {(showBottomTimestep || task.endTime) && <Timestep time={task.endTime || currentTime.toISOString()} />}
       </>
     );
+  }, (prevProps, nextProps) => {
+    return prevProps.task === nextProps.task && 
+           prevProps.index === nextProps.index && 
+           prevProps.showBottomTimestep === nextProps.showBottomTimestep;
   });
 
   const filteredTags = useMemo(() => {
