@@ -222,6 +222,7 @@ export const TimelineApp: React.FC = () => {
       {formatTime(time)}
     </div>
   ));
+  Timestep.displayName = 'Timestep';
 
   const TaskItem = React.memo(({ task, index, showBottomTimestep }: { task: Task; index: number; showBottomTimestep: boolean }) => {
     const tag = tags.find(t => t.id === task.tagId);
@@ -245,6 +246,7 @@ export const TimelineApp: React.FC = () => {
            prevProps.index === nextProps.index && 
            prevProps.showBottomTimestep === nextProps.showBottomTimestep;
   });
+  TaskItem.displayName = 'TaskItem';
 
   const filteredTags = useMemo(() => {
     return tags.filter(tag => tag.name.toLowerCase().includes(tagSearchTerm.toLowerCase()));
