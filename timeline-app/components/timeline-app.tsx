@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { motion, useAnimation } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Tag {
   id: string;
@@ -26,6 +27,38 @@ interface DayData {
   dayEndTime: string | null;
 }
 
+interface TaskItemProps {
+  task: Task;
+  tag: Tag | undefined;
+  height: string;
+  onClick: () => void;
+}
+
+const Timestep: React.FC<{ time: string }> = React.memo(({ time }) => (
+  <div className="w-full flex items-center justify-center bg-black text-white text-xs px-1">
+    {new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+  </div>
+));
+
+const TaskItem: React.FC<TaskItemProps> = React.memo(({ task, tag, height, onClick }) => {
+  const controls = useAnimation();
+
+  useEffect(() => {
+    controls.start({ height });
+  }, [height, controls]);
+
+  return (
+    <motion.div
+      animate={controls}
+      className="w-full flex items-center justify-center cursor-pointer hover:opacity-80"
+      style={{ backgroundColor: tag?.color || '#000000' }}
+      onClick={onClick}
+    >
+      <div className="font-bold text-white z-10">{task.title}</div>
+    </motion.div>
+  );
+});
+
 export const TimelineApp: React.FC = () => {
   const [dayData, setDayData] = useState<DayData | null>(null);
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
@@ -36,37 +69,48 @@ export const TimelineApp: React.FC = () => {
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [tags, setTags] = useState<Tag[]>([]);
+  const [tagSearchTerm, setTagSearchTerm] = useState('');
   const [isNewTagDialogOpen, setIsNewTagDialogOpen] = useState(false);
   const [newTagName, setNewTagName] = useState('');
   const [newTagColor, setNewTagColor] = useState('#000000');
-  const [tagSearchTerm, setTagSearchTerm] = useState('');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    // Load tags from localStorage
+    const storedTags = localStorage.getItem('tags');
+    if (storedTags) {
+      setTags(JSON.parse(storedTags));
+    }
+
+    // Load current day data from localStorage
+    const today = new Date().toISOString().split('T')[0];
+    const storedDayData = localStorage.getItem(today);
+    if (storedDayData) {
+      const parsedDayData = JSON.parse(storedDayData);
+      if (!parsedDayData.dayEndTime) {
+        setDayData(parsedDayData);
+        setCurrentTask(parsedDayData.tasks[parsedDayData.tasks.length - 1] || null);
+      }
+    }
+  }, []);
 
   const saveDayData = useCallback((data: DayData) => {
     localStorage.setItem(data.date, JSON.stringify(data));
-  }, []);
-
-  const loadDayData = useCallback((date: string): DayData | null => {
-    const data = localStorage.getItem(date);
-    return data ? JSON.parse(data) : null;
   }, []);
 
   const saveTags = useCallback((tagsData: Tag[]) => {
     localStorage.setItem('tags', JSON.stringify(tagsData));
   }, []);
 
-  const loadTags = useCallback((): Tag[] => {
-    const tagsData = localStorage.getItem('tags');
-    return tagsData ? JSON.parse(tagsData) : [];
-  }, []);
-
-  useEffect(() => {
-    setTags(loadTags());
-  }, [loadTags]);
-
   const startDay = useCallback(() => {
-    const today = new Date().toISOString().split('T')[0];
     const newDayData: DayData = {
-      date: today,
+      date: new Date().toISOString().split('T')[0],
       tasks: [],
       dayStartTime: new Date().toISOString(),
       dayEndTime: null,
@@ -91,14 +135,6 @@ export const TimelineApp: React.FC = () => {
     }
   }, [dayData, saveDayData]);
 
-  const startEndTask = useCallback(() => {
-    setEditingTask(null);
-    setTaskTitle('');
-    setTaskDescription('');
-    setSelectedTagId(null);
-    setIsDialogOpen(true);
-  }, []);
-
   const handleTaskClick = useCallback((task: Task) => {
     setEditingTask(task);
     setTaskTitle(task.title);
@@ -113,7 +149,6 @@ export const TimelineApp: React.FC = () => {
     let updatedDayData: DayData;
 
     if (editingTask) {
-      // Editing existing task
       updatedDayData = {
         ...dayData,
         tasks: dayData.tasks.map(task => 
@@ -123,7 +158,6 @@ export const TimelineApp: React.FC = () => {
         ),
       };
     } else {
-      // Creating new task
       const newTask: Task = {
         id: Date.now().toString(),
         title: taskTitle,
@@ -171,70 +205,16 @@ export const TimelineApp: React.FC = () => {
     setIsNewTagDialogOpen(false);
   }, [newTagName, newTagColor, saveTags]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 500); // Update every 2000ms (this is the refresh rate)
-  
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const loadedData = loadDayData(today);
-    if (loadedData && !loadedData.dayEndTime) {
-      setDayData(loadedData);
-      setCurrentTask(loadedData.tasks[loadedData.tasks.length - 1] || null);
-    }
-  }, [loadDayData]);
-
   const calculateTaskHeight = useCallback((task: Task) => {
-    if (!dayData) return '90%';
+    if (!dayData) return '0%';
     const startTime = new Date(dayData.dayStartTime).getTime();
     const endTime = (dayData.dayEndTime ? new Date(dayData.dayEndTime) : currentTime).getTime();
     const totalDuration = endTime - startTime;
     const taskStartTime = new Date(task.startTime).getTime();
     const taskEndTime = (task.endTime ? new Date(task.endTime) : currentTime).getTime();
     const taskDuration = taskEndTime - taskStartTime;
-    return `${5 + (taskDuration / totalDuration) * 100}%`;
-    //return `${Math.max(5, (taskDuration / totalDuration) * 100)}%`;
+    return `${Math.max(5, (taskDuration / totalDuration) * 100)}%`;
   }, [dayData, currentTime]);
-
-  const formatTime = useCallback((dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  }, []);
-
-  const Timestep = React.memo(({ time }: { time: string }) => (
-    <div className="w-full flex items-center justify-center bg-black text-white text-xs px-1">
-      {formatTime(time)}
-    </div>
-  ));
-  Timestep.displayName = 'Timestep';
-
-  const TaskItem = React.memo(({ task, index, showBottomTimestep }: { task: Task; index: number; showBottomTimestep: boolean }) => {
-    const tag = tags.find(t => t.id === task.tagId);
-    const height = calculateTaskHeight(task);
-    
-    return (
-      <>
-        {index === 0 && <Timestep time={task.startTime} />}
-        <div
-          className="text-white flex justify-center items-center w-full cursor-pointer hover:opacity-80"
-          style={{ height, backgroundColor: tag?.color || '#000000' }}
-          onClick={() => handleTaskClick(task)}
-        >
-          <div className="font-bold z-10">{task.title}</div>
-        </div>
-        {(showBottomTimestep || task.endTime) && <Timestep time={task.endTime || currentTime.toISOString()} />}
-      </>
-    );
-  }, (prevProps, nextProps) => {
-    return prevProps.task === nextProps.task && 
-           prevProps.index === nextProps.index && 
-           prevProps.showBottomTimestep === nextProps.showBottomTimestep;
-  });
-  TaskItem.displayName = 'TaskItem';
 
   const filteredTags = useMemo(() => {
     return tags.filter(tag => tag.name.toLowerCase().includes(tagSearchTerm.toLowerCase()));
@@ -251,18 +231,24 @@ export const TimelineApp: React.FC = () => {
           )}
         </div>
         <div className="h-full flex flex-col items-stretch relative w-full">
-          {dayData && dayData.tasks.map((task, index) => (
-            <TaskItem 
-              key={task.id}
-              task={task}
-              index={index}
-              showBottomTimestep={index === dayData.tasks.length - 1}
-            />
+          {dayData?.tasks.map((task, index) => (
+            <React.Fragment key={task.id}>
+              {index === 0 && <Timestep time={task.startTime} />}
+              <TaskItem
+                task={task}
+                tag={tags.find(t => t.id === task.tagId)}
+                height={calculateTaskHeight(task)}
+                onClick={() => handleTaskClick(task)}
+              />
+              {(index === dayData.tasks.length - 1 || task.endTime) && 
+                <Timestep time={task.endTime || currentTime.toISOString()} />
+              }
+            </React.Fragment>
           ))}
         </div>
       </div>
       <div className="p-4 flex justify-center">
-        <Button onClick={startEndTask} disabled={!dayData}>
+        <Button onClick={() => setIsDialogOpen(true)} disabled={!dayData}>
           Start/End Task
         </Button>
       </div>
@@ -317,7 +303,7 @@ export const TimelineApp: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-                  
+
       <Dialog open={isNewTagDialogOpen} onOpenChange={setIsNewTagDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -325,29 +311,29 @@ export const TimelineApp: React.FC = () => {
           </DialogHeader>
           <div className="space-y-4">
             <Input
-            placeholder="Tag Name"
-            value={newTagName}
-            onChange={(e) => setNewTagName(e.target.value)}
-        />
-        <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">Tag Color</label>
-            <div className="border-2 border-gray-300 rounded-md p-2">
+              placeholder="Tag Name"
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
+            />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Tag Color</label>
+              <div className="border-2 border-gray-300 rounded-md p-2">
                 <Input
-                type="color"
-                value={newTagColor}
-                onChange={(e) => setNewTagColor(e.target.value)}
-                className="w-full h-32"
+                  type="color"
+                  value={newTagColor}
+                  onChange={(e) => setNewTagColor(e.target.value)}
+                  className="w-full h-32"
                 />
-                </div>
+              </div>
             </div>
-        </div>
-        <DialogFooter>
-        <Button onClick={handleNewTag}>Create Tag</Button>
-        </DialogFooter>
-    </DialogContent>
-    </Dialog>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleNewTag}>Create Tag</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-//export default TimelineApp;
+export default TimelineApp;
