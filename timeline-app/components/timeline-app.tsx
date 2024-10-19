@@ -196,21 +196,9 @@ export const TimelineApp: React.FC = () => {
     const taskStartTime = new Date(task.startTime).getTime();
     const taskEndTime = (task.endTime ? new Date(task.endTime) : currentTime).getTime();
     const taskDuration = taskEndTime - taskStartTime;
-    return `${(taskDuration / totalDuration) * 100}%`;
+    return `${5 + (taskDuration / totalDuration) * 100}%`;
+    //return `${Math.max(5, (taskDuration / totalDuration) * 100)}%`;
   }, [dayData, currentTime]);
-
-//   const calculateTaskHeight = useMemo(() => {
-//     return (task: Task, index: number) => {
-//       if (!dayData) return '90%';
-//       const startTime = new Date(dayData.dayStartTime);
-//       const endTime = dayData.dayEndTime ? new Date(dayData.dayEndTime) : currentTime;
-//       const totalDuration = endTime.getTime() - startTime.getTime();
-//       const taskStartTime = new Date(task.startTime);
-//       const taskEndTime = task.endTime ? new Date(task.endTime) : currentTime;
-//       const taskDuration = taskEndTime.getTime() - taskStartTime.getTime();
-//       return `${(taskDuration / totalDuration) * 100}%`;
-//     };
-//   }, [dayData, currentTime]);
 
   const formatTime = useCallback((dateString: string) => {
     const date = new Date(dateString);
