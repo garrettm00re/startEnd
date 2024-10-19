@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,7 @@ const Timestep: React.FC<{ time: string }> = React.memo(({ time }) => (
     {new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
   </div>
 ));
+Timestep.displayName = 'Timestep';
 
 const TaskItem: React.FC<TaskItemProps> = React.memo(({ task, tag, height, onClick }) => {
   const controls = useAnimation();
@@ -58,6 +59,7 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ task, tag, height, onCli
     </motion.div>
   );
 });
+TaskItem.displayName = 'TaskItem';
 
 export const TimelineApp: React.FC = () => {
   const [dayData, setDayData] = useState<DayData | null>(null);
