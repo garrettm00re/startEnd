@@ -1,0 +1,18 @@
+Upon pressing start day:
+    if the user has not made a plan:
+        Prompt: Do you want to make a plan?
+        if yes, provide a simple (optional) way to do exactly what you do on paper & show the plan as it's being made:
+    start day
+    
+While the day is in progress:
+    allow user to toggle between plan and day view
+
+
+FEATURE LIST
+- split tasks
+- phone sync
+- delete tags
+- search/select task
+- make a plan
+- make a plan -> start day -> end day -> review day (repeat)
+- view past days

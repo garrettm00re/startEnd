@@ -1,6 +1,6 @@
 'use client'
 
-import { TimelineApp } from '@/components/timeline-app'
+import { TimelineApp } from '@/app/timeline-app'
 import type { Viewport } from 'next';
 export default function TimelinePage() {
   return <TimelineApp />
